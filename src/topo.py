@@ -11,9 +11,10 @@ class CustomTopology:
 
     # ##########################    
     # basic topo for testing
-    # ONOS Controller
-    #   
-    #  s1  --  s2
+    # Ryu Controller
+    #      s1
+    #    /    \
+    #  s11    s12
     #  /\      /\
     # h1 h2   h3 h4
     # ##########################   
@@ -24,27 +25,29 @@ class CustomTopology:
         c1 = net.addController(name='c1', controller=RemoteController, ip='127.0.0.1', protocol='tcp', port=6633) # default port 6633
 
         info('*** Add Switches ***\n')
-        switches = ['s1', 's2']
-        s1, s2 = [net.addSwitch(s) for s in switches]
+        switches = ['s1', 's11', 's12']
+        s1, s11, s12 = [net.addSwitch(s) for s in switches]
 
         info('*** Add Hosts ***\n')
         hosts = ['h1', 'h2', 'h3', 'h4']
         h1, h2, h3, h4 = [net.addHost(h) for h in hosts]
 
         info('*** Add Links ***\n')
-        for s in [s1]:
-            for h in [h1, h2]:
-                net.addLink(s, h, bw=10) # we can modify delay, max_queue_size as well
-        for s in [s2]:
-            for h in [h3, h4]:
-                net.addLink(s, h, bw=10)
-        net.addLink(s1, s2)
+        net.addLink(h1, s11, bw=10)
+        net.addLink(h2, s11, bw=10)
+
+        net.addLink(h3, s12, bw=10)
+        net.addLink(h4, s12, bw=10)
+
+        net.addLink(s11, s1, bw=10)
+        net.addLink(s12, s1, bw=10)
 
         info('\n*** Build net ***\n')
         net.build()
 
-        for c in net.controllers:
-            c.start()
+        c1.start()
+        for s in [s1, s11, s12]:
+            s.start([c1])
         
         net.start()
 
@@ -53,6 +56,10 @@ class CustomTopology:
         CLI(net)
 
         net.stop()
+    
+    def large(self):
+        pass
+
 
 if __name__ == '__main__':
     customTopo = CustomTopology()
