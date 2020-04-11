@@ -19,18 +19,21 @@ class CustomTopology:
     # h1 h2   h3 h4
     # ##########################   
     def basic(self):
-        net = Mininet(build=False, host=CPULimitedHost, link=TCLink)
+        net = Mininet(build=False, host=CPULimitedHost, link=TCLink, ipBase='10.0.0.0/8')
 
         info('*** Add Controller (ONOS) ***\n')
         c1 = net.addController(name='c1', controller=RemoteController, ip='127.0.0.1', protocol='tcp', port=6633) # default port 6633
 
         info('*** Add Switches ***\n')
-        switches = ['s1', 's11', 's12']
-        s1, s11, s12 = [net.addSwitch(s) for s in switches]
+        s1 = net.addSwitch('s1', dpid='0000000000000001')
+        s11 = net.addSwitch('s11', dpid='000000000000000b') # dpid 0x6=11
+        s12 = net.addSwitch('s12', dpid='000000000000000c') # dpid 0xc=12
 
         info('*** Add Hosts ***\n')
-        hosts = ['h1', 'h2', 'h3', 'h4']
-        h1, h2, h3, h4 = [net.addHost(h) for h in hosts]
+        h1 = net.addHost('h1', ip='10.0.0.1', mac='00:00:00:00:00:01')
+        h2 = net.addHost('h2', ip='10.0.0.2', mac='00:00:00:00:00:02')
+        h3 = net.addHost('h3', ip='10.0.0.3', mac='00:00:00:00:00:03')
+        h4 = net.addHost('h4', ip='10.0.0.4', mac='00:00:00:00:00:04')
 
         info('*** Add Links ***\n')
         net.addLink(h1, s11, bw=10)
@@ -59,7 +62,6 @@ class CustomTopology:
     
     def large(self):
         pass
-
 
 if __name__ == '__main__':
     customTopo = CustomTopology()

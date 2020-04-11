@@ -6,15 +6,33 @@ from ryu.controller.handler import MAIN_DISPATCHER, DEAD_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.lib import hub
 
+from config import BasicConfig
+import utils
+
 
 class SimpleMonitor(simple_switch_13.SimpleSwitch13):
-
-    MONITOR_INTERVAL = 5
+    # frequency of running _monitor function
+    MONITOR_INTERVAL = 3
+    # whether print debug info
+    DEBUG_PRINT = True
 
     def __init__(self, *args, **kwargs):
         super(SimpleMonitor, self).__init__(*args, **kwargs)
         self.datapaths = {}
         self.monitor_thread = hub.spawn(self._monitor)
+
+        # store previous byte count for each flow
+        self.previous_byte_count = {}
+        # store previous package count for each flow
+        self.previous_packet_count = {}
+
+        self.previous_rx_packet_count = {}
+        self.previous_rx_byte_count = {}
+        self.previous_rx_err_count = {}
+
+        self.previous_tx_packet_count = {}
+        self.previous_tx_byte_count = {}
+        self.previous_tx_err_count = {}
 
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
@@ -49,34 +67,78 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
         body = ev.msg.body
+        # get monitored switch
+        dpid = int(ev.msg.datapath.id)
+        switch = BasicConfig.dpid2switch[dpid]
 
-        self.logger.info('fdatapath         '
-                         'in-port  eth-dst           '
+        if SimpleMonitor.DEBUG_PRINT:
+            print '-------------------------------------------------------------------------------'
+            print '-------- ----------------- Flow Stat for Switch: ' + switch + ' ----------------- --------'
+            print '-------------------------------------------------------------------------------'
+            self._flow_print(body)
+
+        for stat in sorted([flow for flow in body if flow.priority == 1], key=lambda flow: (flow.match['in_port'], flow.match['eth_dst'])):
+            in_port = stat.match['in_port']
+            eth_src = stat.match['eth_src']
+            eth_dst = stat.match['eth_dst']
+            out_port = stat.instructions[0].actions[0].port
+            
+            # a flow is identified by this 5 tuple
+            flow = (switch, eth_src, in_port, eth_dst, out_port)
+            # calculate bit rate
+            bit_rate = 0
+            current_byte = stat.byte_count
+            if flow in self.previous_byte_count:
+                bit_rate = utils.bit_rate(current_byte - self.previous_byte_count[flow], SimpleMonitor.MONITOR_INTERVAL)
+            self.previous_byte_count[flow] = current_byte
+            # calculate package rate
+            packet_rate = 0
+            current_packet = stat.packet_count
+            if flow in self.previous_packet_count:
+                packet_rate = utils.packet_rate(current_packet - self.previous_packet_count[flow], SimpleMonitor.MONITOR_INTERVAL)
+            self.previous_packet_count[flow] = current_packet
+
+            if SimpleMonitor.DEBUG_PRINT:
+                print 'bit rate: ' + str(bit_rate) + ' packet rate: ' + str(packet_rate)
+                
+    def _flow_print(self, body):
+        self.logger.info('in-port        eth-src          eth-dst      '
                          'out-port packets  bytes')
-        self.logger.info('---------------- '
-                         '-------- ----------------- '
+        self.logger.info('-------- ----------------- ----------------- '
                          '-------- -------- --------')
         for stat in sorted([flow for flow in body if flow.priority == 1],
                            key=lambda flow: (flow.match['in_port'],
                                              flow.match['eth_dst'])):
-            self.logger.info('%016x %8x %17s %8x %8d %8d',
-                             ev.msg.datapath.id,
-                             stat.match['in_port'], stat.match['eth_dst'],
+            self.logger.info('%8x %17s %17s %8x %8d %8d',
+                             stat.match['in_port'], stat.match['eth_src'], stat.match['eth_dst'],
                              stat.instructions[0].actions[0].port,
                              stat.packet_count, stat.byte_count)
+        
 
     @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
     def _port_stats_reply_handler(self, ev):
         body = ev.msg.body
+        # get monitored switch
+        dpid = int(ev.msg.datapath.id)
+        switch = BasicConfig.dpid2switch[dpid]
 
-        self.logger.info('pdatapath         port     '
+        if SimpleMonitor.DEBUG_PRINT:
+            print '-------------------------------------------------------------------------------'
+            print '-------- ----------------- Port Stat for Switch: ' + switch + ' ----------------- --------'
+            print '-------------------------------------------------------------------------------'
+            self._port_print(body)
+        
+        # TODO: Cal rx, tx rate
+    
+    def _port_print(self, body):
+        self.logger.info('port     '
                          'rx-pkts  rx-bytes rx-error '
                          'tx-pkts  tx-bytes tx-error')
-        self.logger.info('---------------- -------- '
+        self.logger.info('-------- '
                          '-------- -------- -------- '
                          '-------- -------- --------')
         for stat in sorted(body, key=attrgetter('port_no')):
-            self.logger.info('%016x %8x %8d %8d %8d %8d %8d %8d',
-                             ev.msg.datapath.id, stat.port_no,
+            self.logger.info('%8x %8d %8d %8d %8d %8d %8d',
+                             stat.port_no,
                              stat.rx_packets, stat.rx_bytes, stat.rx_errors,
                              stat.tx_packets, stat.tx_bytes, stat.tx_errors)
