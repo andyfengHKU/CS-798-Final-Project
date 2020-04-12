@@ -67,7 +67,6 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
         body = ev.msg.body
-        self.logger.info(body)
         # get monitored switch
         dpid = int(ev.msg.datapath.id)
         switch = BasicConfig.dpid2switch[dpid]

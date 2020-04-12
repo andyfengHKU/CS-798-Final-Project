@@ -4,11 +4,14 @@ from mininet.link import TCLink
 from mininet.log import setLogLevel, info
 from mininet.cli import CLI
 
+import argparse
+
 from attack import Attacker
 
 class CustomTopology:
 
-    def __init__(self):
+    def __init__(self, args):
+        self.args = args
         setLogLevel('info')
 
     # ##########################    
@@ -50,13 +53,18 @@ class CustomTopology:
         info('\n*** Build net ***\n')
         net.build()
 
+        info('\n*** Start net ***\n')
         c1.start()
         for s in [s1, s11, s12]:
             s.start([c1])
-        
         net.start()
-
         net.staticArp()
+
+        attacker = Attacker(h1, [h2, h3])
+        if self.args.attack:
+            attacker.simple_ddos_traffic()
+        else:
+            attacker.simple_normal_traffic()
 
         CLI(net)
 
@@ -66,5 +74,9 @@ class CustomTopology:
         pass
 
 if __name__ == '__main__':
-    customTopo = CustomTopology()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--attack', default=False, action='store_true')
+    args = parser.parse_args()
+
+    customTopo = CustomTopology(args)
     customTopo.basic()

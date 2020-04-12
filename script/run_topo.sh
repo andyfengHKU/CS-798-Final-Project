@@ -1,1 +1,1 @@
-sudo python ../src/topo.py
+sudo python ../src/topo.py $1
