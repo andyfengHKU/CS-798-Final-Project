@@ -12,7 +12,7 @@ import utils
 
 class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # frequency of running _monitor function
-    MONITOR_INTERVAL = 3
+    MONITOR_INTERVAL = 5
     # whether print debug info
     DEBUG_PRINT = True
 
@@ -67,6 +67,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
         body = ev.msg.body
+        self.logger.info(body)
         # get monitored switch
         dpid = int(ev.msg.datapath.id)
         switch = BasicConfig.dpid2switch[dpid]
@@ -128,7 +129,44 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             print '-------------------------------------------------------------------------------'
             self._port_print(body)
         
-        # TODO: Cal rx, tx rate
+        for stat in sorted(body, key=attrgetter('port_no')):
+            port = (switch, stat.port_no)
+            # calculate receive bit rate
+            rx_bit_rate = 0
+            current_rx_byte = stat.rx_bytes
+            if port in self.previous_rx_byte_count:
+                rx_bit_rate = utils.bit_rate(current_rx_byte - self.previous_rx_byte_count[port], SimpleMonitor.MONITOR_INTERVAL)
+            self.previous_rx_byte_count[port] = current_rx_byte
+            # calculate transmit bit rate
+            tx_bit_rate = 0
+            current_tx_byte = stat.tx_bytes
+            if port in self.previous_tx_byte_count:
+                tx_bit_rate = utils.bit_rate(current_tx_byte - self.previous_tx_byte_count[port], SimpleMonitor.MONITOR_INTERVAL)
+            self.previous_tx_byte_count[port] = current_tx_byte
+            # calculate receive packet rate
+            rx_packet_rate = 0
+            current_rx_packet = stat.rx_packets
+            if port in self.previous_rx_packet_count:
+                rx_packet_rate = utils.packet_rate(current_rx_packet - self.previous_rx_packet_count[port], SimpleMonitor.MONITOR_INTERVAL)
+            self.previous_rx_packet_count[port] = current_rx_packet
+            # calculate transmit packet rate
+            tx_packet_rate = 0
+            current_tx_packet = stat.tx_packets
+            if port in self.previous_tx_packet_count:
+                tx_packet_rate = utils.packet_rate(current_tx_packet - self.previous_tx_packet_count[port], SimpleMonitor.MONITOR_INTERVAL)
+            self.previous_tx_packet_count[port] = current_tx_packet
+            # calculate receive err rate
+            rx_err_rate = 0
+            current_rx_err = stat.rx_errors
+            if port in self.previous_rx_err_count:
+                rx_err_rate = utils.err_rate(current_rx_err - self.previous_rx_err_count[port], SimpleMonitor.MONITOR_INTERVAL)
+            self.previous_rx_err_count[port] = current_rx_err
+            # calculate transmit err rate
+            tx_err_rate = 0
+            current_tx_err = stat.tx_errors
+            if port in self.previous_tx_err_count:
+                tx_err_rate = utils.err_rate(current_tx_err - self.previous_tx_err_count[port], SimpleMonitor.MONITOR_INTERVAL)
+            self.previous_tx_err_count[port] = current_tx_err
     
     def _port_print(self, body):
         self.logger.info('port     '
