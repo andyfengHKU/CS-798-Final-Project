@@ -60,7 +60,7 @@ class CustomTopology:
         net.start()
         net.staticArp()
 
-        attacker = Attacker(h1, [h2, h3])
+        attacker = Attacker(h1, [h3, h2])
         if self.args.attack:
             attacker.simple_ddos_traffic()
         else:

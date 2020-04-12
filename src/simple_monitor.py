@@ -6,6 +6,9 @@ from ryu.controller.handler import MAIN_DISPATCHER, DEAD_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.lib import hub
 
+from datetime import datetime
+import csv
+
 from config import BasicConfig
 import utils
 
@@ -15,6 +18,8 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     MONITOR_INTERVAL = 5
     # whether print debug info
     DEBUG_PRINT = True
+    
+    FILE_PRINT = True
 
     def __init__(self, *args, **kwargs):
         super(SimpleMonitor, self).__init__(*args, **kwargs)
@@ -33,6 +38,8 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         self.previous_tx_packet_count = {}
         self.previous_tx_byte_count = {}
         self.previous_tx_err_count = {}
+
+        self.timestamp = datetime.now().strftime("%d-%H-%M-%S")
 
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
@@ -64,6 +71,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
         datapath.send_msg(req)
 
+    # TODO: feature engineering for SVM
     @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
     def _flow_stats_reply_handler(self, ev):
         body = ev.msg.body
@@ -76,7 +84,8 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             print '-------- ----------------- Flow Stat for Switch: ' + switch + ' ----------------- --------'
             print '-------------------------------------------------------------------------------'
             self._flow_print(body)
-
+        
+        cache = []
         for stat in sorted([flow for flow in body if flow.priority == 1], key=lambda flow: (flow.match['in_port'], flow.match['eth_dst'])):
             in_port = stat.match['in_port']
             eth_src = stat.match['eth_src']
@@ -100,6 +109,19 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
             if SimpleMonitor.DEBUG_PRINT:
                 print 'bit rate: ' + str(bit_rate) + ' packet rate: ' + str(packet_rate)
+
+            if SimpleMonitor.FILE_PRINT:
+                cache.append([eth_src, in_port, eth_dst, out_port, bit_rate, packet_rate])
+        
+        if SimpleMonitor.FILE_PRINT:
+            self._flow_dump(switch, cache)
+    
+    def _flow_dump(self, switch, cache):
+        fname = '../data/' + self.timestamp + '-flow-' + str(switch)
+        with open(fname, 'a') as f:
+            writer = csv.writer(f)
+            for row in cache:
+                writer.writerow(row)
                 
     def _flow_print(self, body):
         self.logger.info('in-port        eth-src          eth-dst      '
@@ -128,6 +150,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             print '-------------------------------------------------------------------------------'
             self._port_print(body)
         
+        cache = []
         for stat in sorted(body, key=attrgetter('port_no')):
             port = (switch, stat.port_no)
             # calculate receive bit rate
@@ -166,6 +189,19 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             if port in self.previous_tx_err_count:
                 tx_err_rate = utils.err_rate(current_tx_err - self.previous_tx_err_count[port], SimpleMonitor.MONITOR_INTERVAL)
             self.previous_tx_err_count[port] = current_tx_err
+
+            if SimpleMonitor.FILE_PRINT:
+                cache.append([rx_bit_rate, rx_packet_rate, rx_err_rate, tx_bit_rate, tx_packet_rate, tx_err_rate])
+        
+        if SimpleMonitor.FILE_PRINT:
+            self._port_dump(switch, cache)
+    
+    def _port_dump(self, switch, cache):
+        fname = '../data/' + self.timestamp + '-port-' + str(switch)
+        with open(fname, 'a') as f:
+            writer = csv.writer(f)
+            for row in cache:
+                writer.writerow(row)
     
     def _port_print(self, body):
         self.logger.info('port     '
