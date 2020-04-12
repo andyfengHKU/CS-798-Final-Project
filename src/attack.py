@@ -10,7 +10,6 @@ class Attacker:
     def simple_normal_traffic(self):
         for attacker in self.attackers:
             ping_cmd = 'ping -i ' + str(random.uniform(0, 1)) + ' ' + self.target.IP() + ' &'
-            print(ping_cmd)
             attacker.cmd(ping_cmd)
 
     def complex_normal_traffic(self):

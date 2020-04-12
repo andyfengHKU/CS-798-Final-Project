@@ -10,16 +10,17 @@ from datetime import datetime
 import csv
 
 from config import BasicConfig
+from entropy import Entropy
 import utils
 
 
 class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # frequency of running _monitor function
-    MONITOR_INTERVAL = 5
+    MONITOR_INTERVAL = 2
     # whether print debug info
-    DEBUG_PRINT = True
+    DEBUG_PRINT = False
     
-    FILE_PRINT = True
+    FILE_PRINT = False
 
     def __init__(self, *args, **kwargs):
         super(SimpleMonitor, self).__init__(*args, **kwargs)
@@ -40,6 +41,9 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         self.previous_tx_err_count = {}
 
         self.timestamp = datetime.now().strftime("%d-%H-%M-%S")
+
+        # models
+        self.entropy_model = Entropy()
 
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
@@ -110,11 +114,20 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             if SimpleMonitor.DEBUG_PRINT:
                 print 'bit rate: ' + str(bit_rate) + ' packet rate: ' + str(packet_rate)
 
-            if SimpleMonitor.FILE_PRINT:
-                cache.append([eth_src, in_port, eth_dst, out_port, bit_rate, packet_rate])
+            cache.append([eth_src, in_port, eth_dst, out_port, bit_rate, packet_rate])
         
         if SimpleMonitor.FILE_PRINT:
             self._flow_dump(switch, cache)
+        
+        flows = []
+        for row in cache:
+            flows.append({
+                'eth_src': row[0],
+                'eth_dst': row[2],
+                'packets': row[5] * SimpleMonitor.MONITOR_INTERVAL
+            })
+        entropy = self.entropy_model.get_entropy(flows)
+        print "**************" + str(entropy)
     
     def _flow_dump(self, switch, cache):
         fname = '../data/' + self.timestamp + '-flow-' + str(switch)
