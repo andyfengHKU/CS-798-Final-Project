@@ -9,7 +9,7 @@ from ryu.lib import hub
 from datetime import datetime
 import csv
 
-from config import BasicConfig
+from config import Config
 from entropy import Entropy
 import utils
 
@@ -18,7 +18,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # frequency of running _monitor function
     MONITOR_INTERVAL = 2
     # whether print debug info
-    DEBUG_PRINT = True
+    DEBUG_PRINT = False
     
     FILE_PRINT = False
 
@@ -81,7 +81,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         body = ev.msg.body
         # get monitored switch
         dpid = int(ev.msg.datapath.id)
-        switch = BasicConfig.dpid2switch[dpid]
+        switch = Config.dpid2switch[dpid]
 
         if SimpleMonitor.DEBUG_PRINT:
             print '-------------------------------------------------------------------------------'
@@ -156,7 +156,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         body = ev.msg.body
         # get monitored switch
         dpid = int(ev.msg.datapath.id)
-        switch = BasicConfig.dpid2switch[dpid]
+        switch = Config.dpid2switch[dpid]
 
         if SimpleMonitor.DEBUG_PRINT:
             print '-------------------------------------------------------------------------------'
