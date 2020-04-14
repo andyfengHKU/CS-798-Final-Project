@@ -18,7 +18,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # frequency of running _monitor function
     MONITOR_INTERVAL = 2
     # whether print debug info
-    DEBUG_PRINT = False
+    DEBUG_PRINT = True
     
     FILE_PRINT = False
 
@@ -95,6 +95,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             eth_src = stat.match['eth_src']
             eth_dst = stat.match['eth_dst']
             out_port = stat.instructions[0].actions[0].port
+            duration_sec = stat.duration_sec
             
             # a flow is identified by this 5 tuple
             flow = (switch, eth_src, in_port, eth_dst, out_port)
@@ -114,7 +115,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             if SimpleMonitor.DEBUG_PRINT:
                 print 'bit rate: ' + str(bit_rate) + ' packet rate: ' + str(packet_rate)
 
-            cache.append([eth_src, in_port, eth_dst, out_port, bit_rate, packet_rate])
+            cache.append([eth_src, in_port, eth_dst, out_port, duration_sec, bit_rate, packet_rate])
         
         if SimpleMonitor.FILE_PRINT:
             self._flow_dump(switch, cache)

@@ -13,7 +13,7 @@ class Entropy:
             src = flow['eth_src']
             dst = flow['eth_dst']
             packets = float(flow['packets'])
-            od_key = (src, dst)
+            od_key = tuple(sorted((src, dst)))
             if od_key not in od_pairs:
                 od_pairs[od_key] = packets
                 total_od_pairs_N += 1.0
