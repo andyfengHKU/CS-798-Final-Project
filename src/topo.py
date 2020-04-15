@@ -61,19 +61,11 @@ class CustomTopology:
         net.start()
         net.staticArp()
 
-<<<<<<< HEAD
-        attacker = Attacker(h1, [h4, h3, h2])
-        if self.args.attack:
-           attacker.simple_ddos_traffic()
-        else:
-          attacker.simple_normal_traffic()
-=======
         # attacker = Attacker(h1, [h4, h3, h2])
         # if self.args.attack:
         #     attacker.simple_ddos_traffic()
         # else:
         #     attacker.simple_normal_traffic()
->>>>>>> 09ceb6841556362b25730423cb87786252a587a2
 
         CLI(net)
 
@@ -198,11 +190,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     customTopo = CustomTopology(args)
-<<<<<<< HEAD
-    customTopo.basic()
-=======
     if args.large:
         customTopo.large()
     else:
         customTopo.basic()
->>>>>>> 09ceb6841556362b25730423cb87786252a587a2
