@@ -5,7 +5,7 @@ class Entropy:
     def __init__(self):
         pass
     
-    def get_entropy(self, flows):
+    def compute_entropy(self, flows):
         total_traffic_S = 0
         total_od_pairs_N = 0
         od_pairs = {}

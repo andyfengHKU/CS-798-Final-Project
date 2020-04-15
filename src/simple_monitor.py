@@ -11,6 +11,7 @@ import csv
 
 from config import Config
 from entropy import Entropy
+from pca import PCA
 import utils
 
 
@@ -20,7 +21,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # whether print debug info
     DEBUG_PRINT = False
     
-    FILE_PRINT = True
+    FILE_PRINT = False
 
     def __init__(self, *args, **kwargs):
         super(SimpleMonitor, self).__init__(*args, **kwargs)
@@ -44,6 +45,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
 
         # models
         self.entropy_model = Entropy()
+        self.pca_model = PCA()
 
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
@@ -127,15 +129,22 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 'eth_dst': row[2],
                 'packets': row[5] * SimpleMonitor.MONITOR_INTERVAL
             })
-        entropy = self.entropy_model.get_entropy(flows)
-        print "**************" + str(entropy)
+        entropy = self.entropy_model.compute_entropy(flows)
+        print "=====================Entropy: " + str(entropy)
+        # #### pca part I haven't figure out how to run it in real time
+        # self.pca_model.build_matrix(flows)
+        # residual = self.pca_model.compute_residual(flows)
+        # print "=====================Residual: " + str(residual)
     
     def _flow_dump(self, switch, cache):
+        if len(cache) == 0: return
+        saperater = [-1] * len(cache[0])
         fname = '../data/' + self.timestamp + '-flow-' + str(switch)
         with open(fname, 'a') as f:
             writer = csv.writer(f)
             for row in cache:
                 writer.writerow(row)
+            writer.writerow(saperater)
                 
     def _flow_print(self, body):
         self.logger.info('in-port        eth-src          eth-dst      '
@@ -158,11 +167,11 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         dpid = int(ev.msg.datapath.id)
         switch = Config.dpid2switch[dpid]
 
-        if SimpleMonitor.DEBUG_PRINT:
-            print '-------------------------------------------------------------------------------'
-            print '-------- ----------------- Port Stat for Switch: ' + switch + ' ----------------- --------'
-            print '-------------------------------------------------------------------------------'
-            self._port_print(body)
+        # if SimpleMonitor.DEBUG_PRINT:
+        #     print '-------------------------------------------------------------------------------'
+        #     print '-------- ----------------- Port Stat for Switch: ' + switch + ' ----------------- --------'
+        #     print '-------------------------------------------------------------------------------'
+        #     self._port_print(body)
         
         cache = []
         for stat in sorted(body, key=attrgetter('port_no')):

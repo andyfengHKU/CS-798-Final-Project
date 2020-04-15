@@ -6,7 +6,7 @@ from mininet.cli import CLI
 
 import argparse
 
-from attack import Attacker
+from attack import BasicAttacker, LargeAttacker
 
 class CustomTopology:
 
@@ -60,12 +60,13 @@ class CustomTopology:
             s.start([c1])
         net.start()
         net.staticArp()
-
-        # attacker = Attacker(h1, [h4, h3, h2])
-        # if self.args.attack:
-        #     attacker.simple_ddos_traffic()
-        # else:
-        #     attacker.simple_normal_traffic()
+        
+        if self.args.autoTraffic:
+            attacker = BasicAttacker(h1, h4, [h3,h4,h2])
+            if self.args.attack:
+                attacker.ddos_traffic()
+            else:
+                attacker.normal_traffic()
 
         CLI(net)
 
@@ -185,6 +186,7 @@ class CustomTopology:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--autoTraffic', default=False, action='store_true')
     parser.add_argument('--attack', default=False, action='store_true')
     parser.add_argument('--large', default=False, action='store_true')
     args = parser.parse_args()

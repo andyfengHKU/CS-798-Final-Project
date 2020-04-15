@@ -1,23 +1,35 @@
 import random
 
-class Attacker:
+TIMEOUT = 2
 
-    def __init__(self, target, attackers):
-        self.target = target
-        self.attackers = attackers
+class BasicAttacker:
     
-    # ping cmd to target
-    def simple_normal_traffic(self):
-        for attacker in self.attackers:
-            ping_cmd = 'ping -i ' + str(random.uniform(0, 1)) + ' ' + self.target.IP() + ' &'
-            attacker.cmd(ping_cmd)
+    def __init__(self, victim, attacker, hosts):
+        self.victim = victim # should be h1
+        self.attacker = attacker # should be h4
+        self.hosts = hosts
+    
+    # we can do multi thread if needed
+    # but it cannot be terminated in mininet
+    def normal_traffic(self):
+        while True:
+            random_host = self.hosts[random.randint(0, len(self.hosts)-1)]
+            random_timeout = str(TIMEOUT)
+            random_interval = str(random.uniform(0,0.05))
+            ping_cmd = 'ping -w ' + random_timeout + ' -i ' +  random_interval + ' ' + self.victim.IP()
+            random_host.cmd(ping_cmd)
 
-    def complex_normal_traffic(self):
-        pass
+    def ddos_traffic(self):
+        for host in self.hosts:
+            spoof_ip = host.IP()
+            ddos_cmd = 'hping3 --flood ' + self.victim.IP() + ' -a ' + spoof_ip + ' &'
+            self.attacker.cmd(ddos_cmd)
+            print ddos_cmd
+        
+
+class LargeAttacker:
     
-    # flood udp packets to target
-    def simple_ddos_traffic(self):
-        # we may change to --faster if --flood is too much
-        ddos_cmd = 'hping3 --flood --udp ' + self.target.IP() + ' &' 
-        for attacker in self.attackers:
-            attacker.cmd(ddos_cmd)
+    def __init__(self, victim, attacker, hosts):
+        self.victim = victim 
+        self.attacker = attacker 
+        self.hosts = hosts

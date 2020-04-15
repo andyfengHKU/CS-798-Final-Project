@@ -5,13 +5,14 @@ import numpy as np
 # maybe we can try with a matrix with a bunch of zeros,
 # but that may not make sense.
 
-class calculate_PCA:
+class PCA:
 
     def __init__(self):
         self.X = None
-        pass
 
-    def build_matrix(self,flows):
+    def build_matrix(self, flows):
+        if len(flows) == 0: return
+        
         n_pairs = 0
         od_pairs = {}  #This dict is for storing the index of each pair in the matrix
 
@@ -21,7 +22,6 @@ class calculate_PCA:
             packet_list = []
 
         for flow in flows:
-            print flow
             src = flow['eth_src']
             dst = flow['eth_dst']
             packets = flow['packets']
@@ -39,15 +39,15 @@ class calculate_PCA:
         if self.X:
             if x.shape[0] > self.X.shape[1]:  #If we got new pairs.
                 pad = x.shape[0] - self.X.shape[1]  # calculate how many new pairs.
-                aux = np.zeros((self.X.shape[0],pad))
-                self.X = np.hstack((self.X,aux))   # Fill the previous ones with zeros
+                aux = np.zeros((self.X.shape[0], pad))
+                self.X = np.hstack((self.X, aux))   # Fill the previous ones with zeros
 
-            self.X = np.vstack(self.X,x)
+            self.X = np.vstack(self.X, x)
         else:
             self.X = x
 
-    def compute (self, x ):
-
+    def compute_residual(self, x):
+        if self.X is None: return 0
         # Compute the SVD
         u, s, v = np.linalg.svd(self.X, full_matrices=False)
         I = np.eye(x.shape[0])
