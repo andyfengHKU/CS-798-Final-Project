@@ -62,9 +62,9 @@ class CustomTopology:
 
         attacker = Attacker(h1, [h4, h3, h2])
         if self.args.attack:
-            attacker.simple_ddos_traffic()
+           attacker.simple_ddos_traffic()
         else:
-            attacker.simple_normal_traffic()
+          attacker.simple_normal_traffic()
 
         CLI(net)
 

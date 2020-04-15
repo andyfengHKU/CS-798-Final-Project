@@ -20,7 +20,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # whether print debug info
     DEBUG_PRINT = False
     
-    FILE_PRINT = False
+    FILE_PRINT = True
 
     def __init__(self, *args, **kwargs):
         super(SimpleMonitor, self).__init__(*args, **kwargs)
