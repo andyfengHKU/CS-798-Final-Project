@@ -1,0 +1,1 @@
+sudo python ~/ryu/bin/ryu-manager --ofp-tcp-listen-port 6634 ../src/simple_switch_13.py
