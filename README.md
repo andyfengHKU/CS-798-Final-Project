@@ -9,20 +9,22 @@ Source code for CS 798 Final Project "A comprehensive study of DDoS Attacks Dete
 
 ## Run
 
-#### For basic topology  
-1. First run the monitor with
-   `./run_monitor.sh`
-2. Then create the topology with  
-   `./run_topo.sh`
-
-#### For large topology  
-1. First run monitor and simple switch with  
+1. Run the monitor with  
    `./run_monitor.sh`  
+   if you are using large topology also run another switch with  
    `./run_switch.sh`  
-2. Then create the topology with  
-   `./run_topo.sh --large` 
+2. Run the topology with  
+   `./run_topo.sh`  
+   we support the following flags  
+   - --topo
+      - basic: basic topology
+      - large: large topology
+   - --traffic
+      - empty: no traffic will be run
+      - normal: normal ping traffic auto-run
+      - ddos: ddos hping3 flood traffic auto-run
+
 
 #### Note
 1. topo should be run after monitor/switch
-2. Attacker logic is under construction, it's not a good idea to run it now
 
