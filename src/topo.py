@@ -60,13 +60,16 @@ class CustomTopology:
             s.start([c1])
         net.start()
         net.staticArp()
+        net.pingAll()
         
-        if self.args.autoTraffic:
-            attacker = BasicAttacker(h1, h4, [h3,h4,h2])
-            if self.args.attack:
-                attacker.ddos_traffic()
-            else:
-                attacker.normal_traffic()
+        
+        attacker = BasicAttacker(h1, h4, [h3,h4,h2])
+        if self.args.traffic == 'ddos':
+            attacker.ddos_traffic()
+        elif self.args.traffic == 'normal':
+            attacker.normal_traffic()
+        else:
+            print 'Empty traffic'
 
         CLI(net)
 
@@ -179,6 +182,20 @@ class CustomTopology:
             s.start([c2])
         net.start()
         net.staticArp()
+        net.pingAll()
+
+        attacker = LargeAttacker(h111, h155, \
+            [h112, h113, h114, h115, \
+                h121, h122, h123, h124, h125, \
+                    h131, h132, h133, h134, h135, \
+                        h141, h142, h143, h144, h145, \
+                            h151, h152, h153, h154], h200)
+        if self.args.traffic == 'ddos':
+            attacker.ddos_traffic()
+        elif self.args.traffic == 'normal':
+            attacker.normal_traffic()
+        else:
+            print 'Empty traffic'
 
         CLI(net)
 
@@ -186,13 +203,16 @@ class CustomTopology:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--autoTraffic', default=False, action='store_true')
-    parser.add_argument('--attack', default=False, action='store_true')
-    parser.add_argument('--large', default=False, action='store_true')
+    # --topo [basic, large]
+    parser.add_argument('--topo', action='store', type=str, default='basic')
+    # --traffic [empty, normal, ddos]
+    parser.add_argument('--traffic', action='store', type=str, default='empty')
     args = parser.parse_args()
 
     customTopo = CustomTopology(args)
-    if args.large:
+    if args.topo == 'large':
         customTopo.large()
-    else:
+    elif args.topo == 'basic':
         customTopo.basic()
+    else:
+        print 'Unsupported topology'

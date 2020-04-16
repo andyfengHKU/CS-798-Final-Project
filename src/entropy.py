@@ -6,11 +6,11 @@ class Entropy:
         pass
     
     def compute_entropy(self, flows):
-        total_traffic_S = 0
-        total_od_pairs_N = 0
+        total_traffic_S = 0.0
+        total_od_pairs_N = 0.0
         od_pairs = {}
         for flow in flows:
-            print flow
+            # print flow
             src = flow['eth_src']
             dst = flow['eth_dst']
             packets = float(flow['packets'])
@@ -22,9 +22,10 @@ class Entropy:
                 od_pairs[od_key] += packets
             total_traffic_S += packets
         
-        entropy = 0
+        entropy = 0.0
         if total_traffic_S == 0: return entropy
         for _, ni in od_pairs.items():
             if ni == 0: continue
             entropy += - (ni / total_traffic_S) * math.log(ni / total_traffic_S, 2)
+            
         return entropy

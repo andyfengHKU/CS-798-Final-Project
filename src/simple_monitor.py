@@ -17,7 +17,7 @@ import utils
 
 class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # frequency of running _monitor function
-    MONITOR_INTERVAL = 2
+    MONITOR_INTERVAL = 5
     # whether print debug info
     DEBUG_PRINT = False
     
@@ -107,12 +107,14 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             if flow in self.previous_byte_count:
                 bit_rate = utils.bit_rate(current_byte - self.previous_byte_count[flow], SimpleMonitor.MONITOR_INTERVAL)
             self.previous_byte_count[flow] = current_byte
+            if bit_rate < 0: continue
             # calculate package rate
             packet_rate = 0
             current_packet = stat.packet_count
             if flow in self.previous_packet_count:
                 packet_rate = utils.packet_rate(current_packet - self.previous_packet_count[flow], SimpleMonitor.MONITOR_INTERVAL)
             self.previous_packet_count[flow] = current_packet
+            if packet_rate < 0: continue
 
             if SimpleMonitor.DEBUG_PRINT:
                 print 'bit rate: ' + str(bit_rate) + ' packet rate: ' + str(packet_rate)
@@ -216,8 +218,8 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             if SimpleMonitor.FILE_PRINT:
                 cache.append([rx_bit_rate, rx_packet_rate, rx_err_rate, tx_bit_rate, tx_packet_rate, tx_err_rate])
         
-        if SimpleMonitor.FILE_PRINT:
-            self._port_dump(switch, cache)
+        # if SimpleMonitor.FILE_PRINT:
+        #     self._port_dump(switch, cache)
     
     def _port_dump(self, switch, cache):
         fname = '../data/' + self.timestamp + '-port-' + str(switch)

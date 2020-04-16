@@ -1,6 +1,7 @@
 import random
+import time
 
-TIMEOUT = 2
+TIMEOUT = 5
 
 class BasicAttacker:
     
@@ -29,7 +30,34 @@ class BasicAttacker:
 
 class LargeAttacker:
     
-    def __init__(self, victim, attacker, hosts):
+    def __init__(self, victim, attacker, hosts, out_domain_host):
         self.victim = victim 
         self.attacker = attacker 
         self.hosts = hosts
+
+        self.out_domain_host = out_domain_host
+
+        self.num_sample = 3
+    
+    def normal_traffic(self):
+        while True:
+            random_timeout = str(TIMEOUT)
+            for i in range(self.num_sample):
+                random_host = self.hosts[random.randint(0, len(self.hosts)-1)]
+                random_interval = str(random.uniform(0,0.05))
+                ping_cmd = 'ping -w ' + random_timeout + ' -i ' +  random_interval + ' ' + self.victim.IP() + ' &'
+                random_host.cmd(ping_cmd)
+            time.sleep(TIMEOUT)
+    
+    def ddos_traffic(self):
+        print "ddos"
+        for host in self.hosts:
+            spoof_ip = host.IP()
+            ddos_cmd = 'hping3 --flood ' + self.victim.IP() + ' -a ' + spoof_ip + ' &'
+            self.attacker.cmd(ddos_cmd)
+            print ddos_cmd
+    
+    # new type of ddos attack that attacks random victim
+    # should only test in large topo
+    def random_ddos_traffic(self):
+        pass
