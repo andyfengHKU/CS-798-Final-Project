@@ -185,11 +185,11 @@ class CustomTopology:
         net.pingAll()
 
         attacker = LargeAttacker(h111, h155, \
-            [h112, h113, h114, h115, \
-                h121, h122, h123, h124, h125, \
-                    h131, h132, h133, h134, h135, \
-                        h141, h142, h143, h144, h145, \
-                            h151, h152, h153, h154], h200)
+            [h112, h115, \
+                h121, h122, h123, \
+                    h131, h133, h134, h135, \
+                        h141, h142, h143, h145, \
+                            h151, h153, h154], h200)
         if self.args.traffic == 'ddos':
             attacker.ddos_traffic()
         elif self.args.traffic == 'normal':

@@ -1,1 +1,1 @@
-sudo python ~/ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ../src/simple_monitor.py
+python ~/ryu/bin/ryu-manager --ofp-tcp-listen-port 6633 ../src/simple_monitor.py

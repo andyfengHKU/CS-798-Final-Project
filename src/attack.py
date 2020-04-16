@@ -13,6 +13,7 @@ class BasicAttacker:
     # we can do multi thread if needed
     # but it cannot be terminated in mininet
     def normal_traffic(self):
+        print "normal"
         while True:
             random_host = self.hosts[random.randint(0, len(self.hosts)-1)]
             random_timeout = str(TIMEOUT)
@@ -21,6 +22,7 @@ class BasicAttacker:
             random_host.cmd(ping_cmd)
 
     def ddos_traffic(self):
+        print "ddos"
         for host in self.hosts:
             spoof_ip = host.IP()
             ddos_cmd = 'hping3 --flood ' + self.victim.IP() + ' -a ' + spoof_ip + ' &'
@@ -40,6 +42,7 @@ class LargeAttacker:
         self.num_sample = 3
     
     def normal_traffic(self):
+        print "normal"
         while True:
             random_timeout = str(TIMEOUT)
             for i in range(self.num_sample):

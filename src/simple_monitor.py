@@ -8,6 +8,7 @@ from ryu.lib import hub
 
 from datetime import datetime
 import csv
+import numpy as np
 
 from config import Config
 from entropy import Entropy
@@ -21,7 +22,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # whether print debug info
     DEBUG_PRINT = False
     
-    FILE_PRINT = False
+    FILE_PRINT = True
 
     def __init__(self, *args, **kwargs):
         super(SimpleMonitor, self).__init__(*args, **kwargs)
@@ -32,6 +33,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         self.previous_byte_count = {}
         # store previous package count for each flow
         self.previous_packet_count = {}
+        self.previous_duration_sec = {}
 
         self.previous_rx_packet_count = {}
         self.previous_rx_byte_count = {}
@@ -97,7 +99,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             eth_src = stat.match['eth_src']
             eth_dst = stat.match['eth_dst']
             out_port = stat.instructions[0].actions[0].port
-            duration_sec = stat.duration_sec
+            
             
             # a flow is identified by this 5 tuple
             flow = (switch, eth_src, in_port, eth_dst, out_port)
@@ -116,20 +118,31 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
             self.previous_packet_count[flow] = current_packet
             if packet_rate < 0: continue
 
+            duration = 0
+            current_duration_sec = stat.duration_sec
+            if flow in self.previous_duration_sec:
+                duration = current_duration_sec - self.previous_duration_sec[flow]
+            else:
+                duration = current_duration_sec
+            self.previous_duration_sec[flow] = current_duration_sec
+            if duration < 0: continue
+
             if SimpleMonitor.DEBUG_PRINT:
                 print 'bit rate: ' + str(bit_rate) + ' packet rate: ' + str(packet_rate)
 
-            cache.append([eth_src, in_port, eth_dst, out_port, duration_sec, bit_rate, packet_rate])
+            cache.append([eth_src, in_port, eth_dst, out_port, duration, bit_rate, packet_rate])
         
+        feature = self._compute_feature(cache)
         if SimpleMonitor.FILE_PRINT:
-            self._flow_dump(switch, cache)
+            self._feature_dump(switch, feature)
+            # self._flow_dump(switch, cache)
         
         flows = []
         for row in cache:
             flows.append({
                 'eth_src': row[0],
                 'eth_dst': row[2],
-                'packets': row[5] * SimpleMonitor.MONITOR_INTERVAL
+                'packets': row[6] * SimpleMonitor.MONITOR_INTERVAL
             })
         entropy = self.entropy_model.compute_entropy(flows)
         print "=====================Entropy: " + str(entropy)
@@ -137,6 +150,97 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         # self.pca_model.build_matrix(flows)
         # residual = self.pca_model.compute_residual(flows)
         # print "=====================Residual: " + str(residual)
+    
+    '''
+    Features:
+    APf: average packets rate per flow
+    MPf: maximum packet rate per flow
+    ABf: average bits per packet per flow
+    MBf: maximum bits per packet per flow
+    ADf: average duration per flow
+    MDf: maximum duration per flow
+    PPf: percentage of Pair flows
+    GSf: growth of single flows
+    GDP: growth of different ports
+    '''
+    def _compute_feature(self, cache):
+        # stat
+        packets_rate = []
+        bits_rate = []
+        durations = []
+        num_flows = 0
+        num_pair_flows = 0
+        pair_flows = {}
+        ports = {}
+        
+        for item in cache:
+            duration =  item[4]
+            bit_rate = item[5] * 1000.0
+            packet_rate = item[6]
+            # skip empty flow
+            if bit_rate == 0 or packet_rate == 0: continue
+            
+            packets_rate.append(packet_rate)
+            bits_rate.append(bit_rate / packet_rate)
+            durations.append(duration)
+
+            num_flows += 1
+            # count for PPf & GSf
+            src = item[0]
+            dst = item[2]
+            pair_flow = tuple(sorted([src, dst])) 
+            if pair_flow not in pair_flows:
+                pair_flows[pair_flow] = 1
+            else:
+                pair_flows[pair_flow] += 1
+            # count for GDP
+            in_port = item[1]
+            out_port = item[2]
+            if in_port not in ports:
+                ports[in_port] = 0
+            else:
+                ports[in_port] += 1
+            
+            if out_port not in ports:
+                ports[out_port] = 0
+            else:
+                ports[out_port] += 1
+        
+        if len(packets_rate) == 0: return
+        
+        APf = np.median(packets_rate)
+        MPf = np.max(packets_rate)
+        
+        ABf = np.median(bits_rate)
+        MBf = np.max(bits_rate)
+
+        ADf = np.median(durations)
+        MDf = np.max(durations)
+
+        for _, v in pair_flows.items():
+            if v == 2: num_pair_flows += 1
+
+        PPf = 2.0 * num_pair_flows / num_flows
+
+        GSf = (num_flows - 2.0 * num_pair_flows) / SimpleMonitor.MONITOR_INTERVAL
+
+        GDP = len(ports) * 1.0 / SimpleMonitor.MONITOR_INTERVAL
+
+        features = [ self._format(APf), self._format(MPf), self._format(ABf), \
+            self._format(MBf), self._format(ADf), self._format(MDf), \
+                self._format(PPf), self._format(GSf), self._format(GDP)]
+
+        return features
+    
+    def _format(self, num):
+        return "{:.2f}".format(num)
+
+    def _feature_dump(self, switch, feature):
+        if feature is None: return
+        fname = '../data/' + self.timestamp + '-features-' + str(switch)
+        with open(fname, 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(feature)
     
     def _flow_dump(self, switch, cache):
         if len(cache) == 0: return
