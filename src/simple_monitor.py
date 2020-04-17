@@ -15,6 +15,7 @@ from entropy import Entropy
 from pca import PCA
 import utils
 
+#import matplotlib.pyplot as plt
 
 class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     # frequency of running _monitor function
@@ -27,7 +28,7 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
     def __init__(self, *args, **kwargs):
         super(SimpleMonitor, self).__init__(*args, **kwargs)
         self.datapaths = {}
-        self.monitor_thread = hub.spawn(self._monitor)
+        self.monitor_thread = hub.spawn(self._monitor) #Xiyang can you comment what this does
 
         # store previous byte count for each flow
         self.previous_byte_count = {}
@@ -49,6 +50,8 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
         self.entropy_model = Entropy()
         self.pca_model = PCA()
 
+    # Pablo: Man I don't understand this, can you provide a little
+    #        explanation
     @set_ev_cls(ofp_event.EventOFPStateChange,
                 [MAIN_DISPATCHER, DEAD_DISPATCHER])
     def _state_change_handler(self, ev):
@@ -145,11 +148,13 @@ class SimpleMonitor(simple_switch_13.SimpleSwitch13):
                 'packets': row[6] * SimpleMonitor.MONITOR_INTERVAL
             })
         entropy = self.entropy_model.compute_entropy(flows)
-        print "=====================Entropy: " + str(entropy)
+        #print "=====================Entropy: " + str(entropy)
+
+
         # #### pca part I haven't figure out how to run it in real time
-        # self.pca_model.build_matrix(flows)
-        # residual = self.pca_model.compute_residual(flows)
-        # print "=====================Residual: " + str(residual)
+        #self.pca_model.build_matrix(flows)
+        residual = self.pca_model.compute_residual(flows)
+        print "=====================Residual: " + str(residual)
     
     '''
     Features:

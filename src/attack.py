@@ -17,17 +17,33 @@ class BasicAttacker:
         while True:
             random_host = self.hosts[random.randint(0, len(self.hosts)-1)]
             random_timeout = str(TIMEOUT)
-            random_interval = str(random.uniform(0,0.05))
+            random_interval = str(random.uniform(0,0.1))
             ping_cmd = 'ping -w ' + random_timeout + ' -i ' +  random_interval + ' ' + self.victim.IP()
             random_host.cmd(ping_cmd)
 
     def ddos_traffic(self):
+
+        time.sleep(5)
+        #There will be regular traffic for normal_time and then the attack will take place.
+        #the other host that are not malicious should be able to keep the communication.
+
         print "ddos"
+
         for host in self.hosts:
             spoof_ip = host.IP()
             ddos_cmd = 'hping3 --flood ' + self.victim.IP() + ' -a ' + spoof_ip + ' &'
             self.attacker.cmd(ddos_cmd)
             print ddos_cmd
+
+        time.sleep(50)
+        print("killing all.....")
+        for host in self.hosts:
+            spoof_ip = host.IP()
+            ddos_cmd = 'kill $(jobs -p)'
+            self.attacker.cmd(ddos_cmd)
+            print ddos_cmd
+
+
         
 
 class LargeAttacker:

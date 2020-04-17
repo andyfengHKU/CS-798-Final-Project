@@ -1,23 +1,27 @@
 import numpy as np
 
 #untested class
-# the matrix X is dynamic, that is why I am doing all this,
-# maybe we can try with a matrix with a bunch of zeros,
-# but that may not make sense.
+# The method is called PCA but they never mention standardizing the data. That
+# is why I am not scaling or standardizing the data.
+
+# This method has a problem with this dynamic matrix. If we fix it static it
+# wont be effective for mitigation, but If we let it grow then in the longer
+# term we wont be able to store the whole matrix.
 
 class PCA:
 
     def __init__(self):
         self.X = None
+        self.od_pairs = {}  # This dict is for storing the index of each pair in the matrix
+        self.n_pairs = 0
 
-    def build_matrix(self, flows):
-        if len(flows) == 0: return
-        
-        n_pairs = 0
-        od_pairs = {}  #This dict is for storing the index of each pair in the matrix
+    def compute_residual(self, flows):
+        if len(flows) == 0: return 0
+        #print('----flows---')
+        #print(flows)
 
-        if od_pairs:
-            packet_list = [0 for i in range(len(od_pairs))]
+        if self.od_pairs:
+            packet_list = [0 for i in range(len(self.od_pairs))]
         else:
             packet_list = []
 
@@ -25,42 +29,45 @@ class PCA:
             src = flow['eth_src']
             dst = flow['eth_dst']
             packets = flow['packets']
-            od_key = tuple(sorted((src,dst)))
+            od_key = tuple(sorted((src, dst)))
 
-            if od_key not in od_pairs:
-                od_pairs[od_key] = n_pairs
-                packet_list.append(packets)  #this pair is new.
-                n_pairs += 1
+            if od_key not in self.od_pairs:
+                self.od_pairs[od_key] = self.n_pairs
+                packet_list.append(packets)  # this pair is new.
+                self.n_pairs += 1
             else:
-                packet_list[od_pairs[od_key]] = packets #insert the packets in the corresponding index.
+                packet_list[self.od_pairs[od_key]] = packets  # insert the packets in the corresponding index.
 
-        x = np.array(packet_list) # Convert the list into array for building the matrix.
+        x = np.array(packet_list)   # Convert the list into array for building the matrix.
+        print('----x---')
+        print(x)
 
-        if self.X:
-            if x.shape[0] > self.X.shape[1]:  #If we got new pairs.
+        if self.X is not None:
+            if x.shape[0] > self.X.shape[1]:  # If we got new pairs.
                 pad = x.shape[0] - self.X.shape[1]  # calculate how many new pairs.
                 aux = np.zeros((self.X.shape[0], pad))
-                self.X = np.hstack((self.X, aux))   # Fill the previous ones with zeros
+                self.X = np.hstack((self.X, aux))  # Fill the previous ones with zeros
 
-            self.X = np.vstack(self.X, x)
         else:
-            self.X = x
+            self.X = x.reshape((1,-1))
+        print('----Matrix---')
+        print(self.X)
 
-    def compute_residual(self, x):
-        if self.X is None: return 0
-        # Compute the SVD
-        u, s, v = np.linalg.svd(self.X, full_matrices=False)
-        I = np.eye(x.shape[0])
-        C_tilde = I - np.matmul(u.transpose(),u)
-        x_tilde = np.matmul(C_tilde,x.reshape((-1,1)))
-        residual = np.linalg.norm(x_tilde)
+        if self.X.shape[0] > self.X.shape[1]:
+            # Compute the SVD
+            u, s, v = np.linalg.svd(self.X, full_matrices=False)
+            I = np.eye(x.shape[0])
+            C_tilde = I - np.matmul(u.transpose(),u)
+            x_tilde = np.matmul(C_tilde,x.reshape((-1,1)))
+            print('----x_tilde---')
+            print(x_tilde)
+            residual = np.linalg.norm(x_tilde)
+        else:
+            residual = 0
 
-        #The method is called PCA but they never mention standardizing the data. That
-        # is why I am not scaling or standardizing the data.
+        #increase the size of the matrix with the new flow.
 
-        #This method has a problem with this dynamic matrix. If we fix it static it
-        # wont be effective for mitigation, but If we let it grow then in the longer
-        # term we wont be able to store the whole matrix.
+        self.X = np.vstack((self.X, x))
 
         return residual
 
