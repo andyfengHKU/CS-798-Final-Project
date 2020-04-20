@@ -1,5 +1,6 @@
 import random
 import time
+import numpy as np
 
 TIMEOUT = 5
 
@@ -13,7 +14,6 @@ class BasicAttacker:
     # we can do multi thread if needed
     # but it cannot be terminated in mininet
     def normal_traffic(self):
-        print "normal"
         while True:
             random_host = self.hosts[random.randint(0, len(self.hosts)-1)]
             random_timeout = str(TIMEOUT)
