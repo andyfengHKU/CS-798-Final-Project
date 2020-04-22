@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 #untested class
 # The method is called PCA but they never mention standardizing the data. That
@@ -69,6 +70,7 @@ class PCA:
 
         self.X = np.vstack((self.X, x))
 
-        return residual
+        if residual == 0: return 0
+        return math.log(residual)
 
 

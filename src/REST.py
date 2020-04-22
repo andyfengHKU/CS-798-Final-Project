@@ -128,7 +128,7 @@ class SimpleMonitor():
         entropy = self.entropy_model.compute_entropy(flows)
         print "=====================Entropy: " + str(entropy)
 
-        self._detect_attack(entropy,datapath,'entropy')
+        # self._detect_attack(entropy,datapath,'entropy')
 
         # residual = self.pca_model.compute_residual(flows)
         # print "=====================Residual: " + str(residual)
@@ -330,14 +330,10 @@ class SimpleMonitor():
 
         rule = {'dpid': int(datapath),
                 "priority": 44444,
-                "table_id": 1,
+                "table_id": 0,
                 'match':{'dl_src':src},
                 'instructions':[]}
-        print(rule)
-        handler = requests.post(url, data = rule)
-        print (datapath,handler.text)
-
-        print(handler.status_code == 1202)
+        handler = requests.post(url, json=rule)
 
 def main():
 
