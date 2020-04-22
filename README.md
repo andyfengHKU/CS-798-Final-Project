@@ -23,8 +23,9 @@ Source code for CS 798 Final Project "A comprehensive study of DDoS Attacks Dete
       - empty: no traffic will be run
       - normal: normal ping traffic auto-run
       - ddos: ddos hping3 flood traffic auto-run
-
+3. Run the Restful API with  
+   `python REST.py` (I forget whether its python3 or not)
 
 #### Note
-1. topo should be run after monitor/switch
+1. Monitor should be run at first
 
