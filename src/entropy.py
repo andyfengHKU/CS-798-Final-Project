@@ -1,5 +1,6 @@
 import math
-# untested class
+
+
 class Entropy:
 
     def __init__(self):

@@ -1,3 +1,6 @@
+'''
+Global config file to store necessary hard code mapping between network components
+'''
 class Config:
 
     controllers = ['c1', 'c2']

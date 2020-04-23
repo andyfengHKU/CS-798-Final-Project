@@ -28,7 +28,6 @@ class CustomTopology:
 
         info('*** Add Controller (ONOS) ***\n')
         c1 = net.addController(name='c1', controller=RemoteController, ip='127.0.0.1', protocol='tcp', port=6633) # default port 6633
-        c2 = net.addController()
 
         info('*** Add Switches ***\n')
         s1 = net.addSwitch('s1', dpid='0000000000000001')
@@ -62,12 +61,14 @@ class CustomTopology:
         net.staticArp()
         net.pingAll()
         
-        
+        # h1 as victim, h4 as attacker
         attacker = BasicAttacker(h1, h4, [h3,h4,h2])
         if self.args.traffic == 'ddos':
             attacker.ddos_traffic()
         elif self.args.traffic == 'normal':
             attacker.normal_traffic()
+        elif self.args.traffic == 'mix':
+            attacker.mix_traffic()
         else:
             print 'Empty traffic'
 
@@ -80,7 +81,7 @@ class CustomTopology:
 
         info('*** Add Controller (ONOS) ***\n')
         c1 = net.addController(name='c1', controller=RemoteController, ip='127.0.0.1', protocol='tcp', port=6633) # default port 6633
-        c2 = net.addController(name='c2', controller=RemoteController, ip='127.0.0.1', protocol='tcp', port=6634) # default port 6633
+        # c2 = net.addController(name='c2', controller=RemoteController, ip='127.0.0.1', protocol='tcp', port=6634) # default port 6633
 
         info('*** Add Switches ***\n')
         s1 = net.addSwitch('s1', dpid='0000000000000001')
@@ -175,11 +176,11 @@ class CustomTopology:
 
         info('\n*** Start net ***\n')
         c1.start()
-        c2.start()
-        for s in [s1, s11, s12, s13, s14, s15]:
+        # c2.start()
+        for s in [s1, s11, s12, s13, s14, s15, s2]:
             s.start([c1])
-        for s in [s2]:
-            s.start([c2])
+        # for s in [s2]:
+        #     s.start([c2])
         net.start()
         net.staticArp()
         net.pingAll()
@@ -194,6 +195,8 @@ class CustomTopology:
             attacker.ddos_traffic()
         elif self.args.traffic == 'normal':
             attacker.normal_traffic()
+        elif self.args.traffic == 'mix':
+            attacker.mix_traffic()
         else:
             print 'Empty traffic'
 
@@ -205,7 +208,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # --topo [basic, large]
     parser.add_argument('--topo', action='store', type=str, default='basic')
-    # --traffic [empty, normal, ddos]
+    # --traffic [empty, normal, ddos, mix]
     parser.add_argument('--traffic', action='store', type=str, default='empty')
     args = parser.parse_args()
 

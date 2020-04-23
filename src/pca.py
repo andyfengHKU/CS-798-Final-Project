@@ -1,7 +1,6 @@
 import numpy as np
 import math
 
-#untested class
 # The method is called PCA but they never mention standardizing the data. That
 # is why I am not scaling or standardizing the data.
 
@@ -40,8 +39,8 @@ class PCA:
                 packet_list[self.od_pairs[od_key]] = packets  # insert the packets in the corresponding index.
 
         x = np.array(packet_list)   # Convert the list into array for building the matrix.
-        print('----x---')
-        print(x)
+        # print('----x---')
+        # print(x)
 
         if self.X is not None:
             if x.shape[0] > self.X.shape[1]:  # If we got new pairs.
@@ -51,8 +50,8 @@ class PCA:
 
         else:
             self.X = x.reshape((1,-1))
-        print('----Matrix---')
-        print(self.X)
+        # print('----Matrix---')
+        # print(self.X)
 
         if self.X.shape[0] > self.X.shape[1]:
             # Compute the SVD
@@ -60,8 +59,8 @@ class PCA:
             I = np.eye(x.shape[0])
             C_tilde = I - np.matmul(u.transpose(),u)
             x_tilde = np.matmul(C_tilde,x.reshape((-1,1)))
-            print('----x_tilde---')
-            print(x_tilde)
+            # print('----x_tilde---')
+            # print(x_tilde)
             residual = np.linalg.norm(x_tilde)
         else:
             residual = 0

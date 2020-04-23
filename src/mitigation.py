@@ -5,9 +5,11 @@ import time
 from datetime import datetime
 import csv
 import numpy as np
+import argparse
 
 from config import Config
 from entropy import Entropy
+from svm import SVM
 from pca import PCA
 import utils
 
@@ -17,11 +19,13 @@ class SimpleMonitor():
     # frequency of running _monitor function
     MONITOR_INTERVAL = 5
     # whether print debug info
-    DEBUG_PRINT = False
+    DEBUG_PRINT = True
 
-    FILE_PRINT = True
+    FILE_PRINT = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, args):
+        self.args = args
+
         self.datapaths = {}
 
         # store previous byte count for each flow
@@ -43,12 +47,13 @@ class SimpleMonitor():
         # models
         self.entropy_model = Entropy()
         self.pca_model = PCA()
+        self.svm_model = SVM()
 
     def _get_dpids(self):
-        url = 'http://localhost:8080/stats/switches'  #switches.
+        url = 'http://localhost:8080/stats/switches'  # switches.
         handler = requests.get(url)
         self.datapaths = map(str,handler.json())
-        #print self.datapaths
+        # print self.datapaths
 
     def _monitor(self):
         while True:
@@ -58,7 +63,6 @@ class SimpleMonitor():
                 self._port_stats_reply_handler(dp)
             time.sleep(SimpleMonitor.MONITOR_INTERVAL)
 
-
     def _request_stats(self, datapath):
 
         url = 'http://localhost:8080/stats/flow/' + datapath
@@ -66,13 +70,11 @@ class SimpleMonitor():
         switch = Config.dpid2switch[int(datapath)]
 
         if SimpleMonitor.DEBUG_PRINT:
-            print '-------------------------------------------------------------------------------'
+            # print '-------------------------------------------------------------------------------'
             print '-------- ----------------- Flow Stat for Switch: ' + switch + ' ----------------- --------'
-            print '-------------------------------------------------------------------------------'
-            self._flow_print(body)
+            # print '-------------------------------------------------------------------------------'
 
         cache = []
-
         for stat in sorted([flow for flow in body if flow['priority'] == 1],
                            key=lambda flow: (flow['match']['in_port'], flow['match']['dl_dst'])):
 
@@ -83,6 +85,7 @@ class SimpleMonitor():
 
             # a flow is identified by this 5 tuple
             flow = (switch, eth_src, in_port, eth_dst, out_port)
+            
             # calculate bit rate
             bit_rate = 0
             current_byte = stat['byte_count']
@@ -90,6 +93,7 @@ class SimpleMonitor():
                 bit_rate = utils.bit_rate(current_byte - self.previous_byte_count[flow], SimpleMonitor.MONITOR_INTERVAL)
             self.previous_byte_count[flow] = current_byte
             if bit_rate < 0: continue
+            
             # calculate package rate
             packet_rate = 0
             current_packet = stat['packet_count']
@@ -98,7 +102,7 @@ class SimpleMonitor():
                                                 SimpleMonitor.MONITOR_INTERVAL)
             self.previous_packet_count[flow] = current_packet
             if packet_rate < 0: continue
-
+            
             duration = 0
             current_duration_sec = stat['duration_sec']
             if flow in self.previous_duration_sec:
@@ -108,8 +112,8 @@ class SimpleMonitor():
             self.previous_duration_sec[flow] = current_duration_sec
             if duration < 0: continue
 
-            if SimpleMonitor.DEBUG_PRINT:
-                print 'bit rate: ' + str(bit_rate) + ' packet rate: ' + str(packet_rate)
+            # if SimpleMonitor.DEBUG_PRINT:
+            #     print 'bit rate: ' + str(bit_rate) + ' packet rate: ' + str(packet_rate)
 
             cache.append([eth_src, in_port, eth_dst, out_port, duration, bit_rate, packet_rate])
 
@@ -125,15 +129,25 @@ class SimpleMonitor():
                 'eth_dst': row[2],
                 'packets': row[6] * SimpleMonitor.MONITOR_INTERVAL
             })
+        
+        # detection
         entropy = self.entropy_model.compute_entropy(flows)
-        print "=====================Entropy: " + str(entropy)
+        residual = self.pca_model.compute_residual(flows)
+        prediction = self.svm_model.predict('basic', switch, feature)
 
-        # self._detect_attack(entropy,datapath,'entropy')
+        if SimpleMonitor.DEBUG_PRINT:
+            print 'Entropy: ' + str(entropy)
+            print 'Residual: ' + str(residual)
+            print 'prediction: ' + str(prediction)
 
-        # residual = self.pca_model.compute_residual(flows)
-        # print "=====================Residual: " + str(residual)
-
-        #self._detect_attack(entropy, dpid, 'entropy')
+        if self.args.mitigation == 'entropy':
+            self._detect_attack(entropy, datapath, 'entropy')
+        elif self.args.mitigation == 'pca':
+            self._detect_attack(residual, datapath, 'pca')
+        elif  self.args.mitigation == 'svm':
+            self._detect_attack(prediction, datapath, 'svm')
+        else:
+            print 'No mitigation'
 
     '''
     Features:
@@ -147,8 +161,6 @@ class SimpleMonitor():
     GSf: growth of single flows
     GDP: growth of different ports
     '''
-
-
     def _compute_feature(self, cache):
         # stat
         packets_rate = []
@@ -309,21 +321,18 @@ class SimpleMonitor():
             for row in cache:
                 writer.writerow(row)
 
-    def _detect_attack(self, value, _dpid, method):
+    def _detect_attack(self, value, dpid, method):
         if method == 'entropy':
-
             if value > 0.7:
-                self._drop_attacker_traffic(_dpid, '00:00:00:00:00:04') #add src_IP of the attacker.
-
-            print "=====================Entropy: " + str(value)
+                self._drop_attacker_traffic(dpid, '00:00:00:00:00:04') #add src_IP of the attacker.
 
         elif method == 'pca':
-            print "=====================Residual: " + str(value)
+            if value > -23:
+                pass
 
         elif method == 'svm':
-            pass
-
-        # return flag, victim_IP, attackers_IP
+            if value > 0.5:
+                pass
 
     def _drop_attacker_traffic(self, datapath, src):
         url = 'http://localhost:8080/stats/flowentry/add'
@@ -336,9 +345,10 @@ class SimpleMonitor():
         handler = requests.post(url, json=rule)
 
 def main():
-
-    MONITOR_INTERVAL = 5
-    monitor = SimpleMonitor()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mitigation', action='store', type=str, default='None')
+    args = parser.parse_args()
+    monitor = SimpleMonitor(args)
     monitor._monitor()
 
 if __name__ == '__main__':

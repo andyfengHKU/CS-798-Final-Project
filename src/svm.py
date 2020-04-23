@@ -40,7 +40,7 @@ class SVM:
         return clf
 
     def predict(self, topology, switch, features):
-        features = features.split(",")
+        if features is None: return 0
         test_data = [[float(i) for i in features]]
 
         prediction = None
