@@ -94,7 +94,7 @@ class CustomTopology:
         s2 = net.addSwitch('s2', dpid='0000000000000002')
 
         info('*** Add Hosts ***\n')
-        h111 = net.addHost('h111', ip='10.1.1.1', mac='00:00:00:01:01:01')
+        h111 = net.addHost('h111', ip='10.1.1.1', mac='00:00:00:00:00:01')
         h112 = net.addHost('h112', ip='10.1.1.2', mac='00:00:00:01:01:02')
         h113 = net.addHost('h113', ip='10.1.1.3', mac='00:00:00:01:01:03')
         h114 = net.addHost('h114', ip='10.1.1.4', mac='00:00:00:01:01:04')
@@ -122,7 +122,7 @@ class CustomTopology:
         h152 = net.addHost('h152', ip='10.1.5.2', mac='00:00:00:01:05:02')
         h153 = net.addHost('h153', ip='10.1.5.3', mac='00:00:00:01:05:03')
         h154 = net.addHost('h154', ip='10.1.5.4', mac='00:00:00:01:05:04')
-        h155 = net.addHost('h155', ip='10.1.5.5', mac='00:00:00:01:05:05')
+        h155 = net.addHost('h155', ip='10.1.5.5', mac='00:00:00:00:00:04')
 
         # out domain host
         h200 = net.addHost('h200', ip='10.2.0.0', mac='00:00:00:02:00:00')

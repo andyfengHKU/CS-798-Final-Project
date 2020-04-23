@@ -140,12 +140,12 @@ class SimpleMonitor():
             print 'Residual: ' + str(residual)
             print 'prediction: ' + str(prediction)
 
-        if self.args.mitigation == 'entropy':
-            self._detect_attack(entropy, datapath, 'entropy')
-        elif self.args.mitigation == 'pca':
-            self._detect_attack(residual, datapath, 'pca')
-        elif  self.args.mitigation == 'svm':
-            self._detect_attack(prediction, datapath, 'svm')
+        if self.args.mitigation == 'entropy' and switch == 's1':
+            self._detect_attack(entropy, datapath, 'entropy', cache)
+        elif self.args.mitigation == 'pca' and switch == 's1':
+            self._detect_attack(residual, datapath, 'pca', cache)
+        elif  self.args.mitigation == 'svm' and switch == 's1':
+            self._detect_attack(prediction, datapath, 'svm', cache)
         else:
             print 'No mitigation'
 
@@ -321,18 +321,44 @@ class SimpleMonitor():
             for row in cache:
                 writer.writerow(row)
 
-    def _detect_attack(self, value, dpid, method):
+    def _detect_attack(self, value, dpid, method, cache):
+        top_three_row = sorted(cache, key=lambda row: row[6], reverse=True)[0:3]
+        if top_three_row[0][-1] == 0 or len(top_three_row) == 0: return
+        
+        freq = {}
+        for row in top_three_row:
+            src_mac = row[0]
+            dst_mac = row[2]
+            if src_mac not in freq:
+                freq[src_mac] = 1
+            else:
+                freq[src_mac] += 1
+            if dst_mac not in freq:
+                freq[dst_mac] = 1
+            else:
+                freq[dst_mac] += 1
+        freq_list = []
+        for k, v in freq.items():
+            if k == '00:00:00:00:00:01': continue
+            freq_list.append((k,v))
+        attacker_mac = sorted(freq_list, key=lambda t: t[1])[-1][0]
+
+        print attacker_mac
+        if attacker_mac != '00:00:00:00:00:04': return
+        
+        
         if method == 'entropy':
             if value > 0.7:
-                self._drop_attacker_traffic(dpid, '00:00:00:00:00:04') #add src_IP of the attacker.
+                self._drop_attacker_traffic(dpid, attacker_mac) #add src_IP of the attacker.
 
         elif method == 'pca':
+            # this threshold may need to be changed
             if value > -23:
-                pass
+                self._drop_attacker_traffic(dpid, attacker_mac) #add src_IP of the attacker.
 
         elif method == 'svm':
             if value > 0.5:
-                pass
+                self._drop_attacker_traffic(dpid, attacker_mac) #add src_IP of the attacker.
 
     def _drop_attacker_traffic(self, datapath, src):
         url = 'http://localhost:8080/stats/flowentry/add'
