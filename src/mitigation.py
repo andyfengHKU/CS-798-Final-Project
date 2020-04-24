@@ -21,7 +21,7 @@ class SimpleMonitor():
     # whether print debug info
     DEBUG_PRINT = True
 
-    FILE_PRINT = False
+    FILE_PRINT = True
 
     def __init__(self, args):
         self.args = args

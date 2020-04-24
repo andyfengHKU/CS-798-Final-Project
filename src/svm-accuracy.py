@@ -92,10 +92,13 @@ def find_accuracy(model, topo, switch):
     mistakes = 0
     for i in range(len(test_data)):
         prediction = model.predict(topo, switch, test_data[i])
+        # print prediction
+        # print labels[i]
         if prediction != labels[i]:
             mistakes += 1
-
-    print("Accuracy of " + switch + " in " + topo + " topology: " + str((1 - mistakes / len(labels)) * 100))
+    # print mistakes
+    # print len(labels)
+    print("Accuracy of " + switch + " in " + topo + " topology: " + str((1 - mistakes * 1.0 / len(labels)) * 100))
 
 
 model = SVM()
